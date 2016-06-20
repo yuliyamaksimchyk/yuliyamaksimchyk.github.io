@@ -66479,7 +66479,7 @@
 	  value: true
 	});
 	exports.default = {
-	  base: 'http://localhost:5000',
+	  base: 'https://morning-gorge-50859.herokuapp.com',
 	  endpoints: {
 	    places: '/places',
 	    filters: '/filters',
