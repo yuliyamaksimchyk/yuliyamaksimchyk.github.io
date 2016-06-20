@@ -66479,12 +66479,14 @@
 	  value: true
 	});
 	exports.default = {
-	  base: 'https://morning-gorge-50859.herokuapp.com',
+	  base: 'http://localhost:5000',
 	  endpoints: {
 	    places: '/places',
 	    filters: '/filters',
 	    searchFilter: '/search?filter=',
-	    minprice: '/minprice'
+	    minprice: '/minprice',
+	    search: '/search',
+	    info: '/info'
 	  }
 	};
 
@@ -66551,7 +66553,7 @@
 /* 24 */
 /***/ function(module, exports) {
 
-	"use strict";
+	'use strict';
 
 	Object.defineProperty(exports, "__esModule", {
 	  value: true
@@ -66564,15 +66566,39 @@
 	  function getMinPrice(origin, destination) {
 	    return $q(function (resolve, reject) {
 	      var url = CONFIG.base + CONFIG.endpoints.minprice;
-	      var queryStr = url + "?originPlace=" + origin + "&destinationPlace=" + destination;
+	      var queryStr = url + '?originPlace=' + origin + '&destinationPlace=' + destination;
 	      $http.get(queryStr).then(function (data) {
 	        return resolve(data.data.data);
 	      });
 	    });
 	  }
 
+	  function performSearch(origin) {
+	    var destination = arguments.length <= 1 || arguments[1] === undefined ? 'anywhere' : arguments[1];
+	    var originDate = arguments[2];
+	    var destinationDate = arguments[3];
+
+	    var url = CONFIG.base + CONFIG.endpoints.search;
+
+	    var originStr = Array.isArray(origin) ? origin.join(',') : origin;
+	    var destinationStr = Array.isArray(destination) ? destination.join(',') : destination;
+
+	    var qs = '?originPlace=' + originStr + '&destinationPlace=' + (destinationStr || 'anytime') + '&outboundDate=' + originDate + '&inboundDate=' + (destinationDate || 'anytime');
+
+	    notifyBefore.forEach(function (cb) {
+	      return cb();
+	    });
+
+	    $http.get(url + qs).then(function (res) {
+	      console.log(res.data);
+	      callbacks.forEach(function (cb) {
+	        return cb(res.data);
+	      });
+	    });
+	  }
+
 	  function searchByFilter(id) {
-	    var endpoint = "" + CONFIG.base + CONFIG.endpoints.searchFilter + id;
+	    var endpoint = '' + CONFIG.base + CONFIG.endpoints.searchFilter + id;
 	    notifyBefore.forEach(function (cb) {
 	      return cb();
 	    });
@@ -66592,11 +66618,29 @@
 	    notifyBefore.push(callback);
 	  }
 
+	  function getInfo(origin, destination, originDate, destinationDate) {
+	    var url = CONFIG.base + CONFIG.endpoints.info;
+
+	    var qs = '?originPlace=' + origin + '&destinationPlace=' + destination + '&outboundDate=' + originDate;
+
+	    if (destinationDate) {
+	      qs += '&inboundDate=' + destinationDate;
+	    }
+
+	    return $q(function (resolve, reject) {
+	      $http.get(url + qs).then(function (data) {
+	        return resolve(data.data);
+	      });
+	    });
+	  }
+
 	  return {
 	    getMinPrice: getMinPrice,
 	    searchByFilter: searchByFilter,
 	    subsctibeAfter: subsctibeAfter,
-	    subsctibeBefore: subsctibeBefore
+	    subsctibeBefore: subsctibeBefore,
+	    performSearch: performSearch,
+	    getInfo: getInfo
 	  };
 	}
 
@@ -67167,7 +67211,7 @@
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-	function bookingItem() {
+	function bookingItem(search, $window) {
 	  return {
 	    replace: true,
 	    restrict: 'E',
@@ -67178,19 +67222,46 @@
 	    },
 	    template: __webpack_require__(34),
 	    link: function link($scope) {
-	      $scope.destination = _lodash2.default.find($scope.places, { PlaceId: $scope.item.OutboundLeg.DestinationId });
+	      $scope.destinationO = _lodash2.default.find($scope.places, { PlaceId: $scope.item.OutboundLeg.DestinationId });
 
-	      $scope.origin = _lodash2.default.find($scope.places, { PlaceId: $scope.item.OutboundLeg.OriginId });
+	      $scope.originO = _lodash2.default.find($scope.places, { PlaceId: $scope.item.OutboundLeg.OriginId });
+
+	      $scope.destinationI = _lodash2.default.find($scope.places, { PlaceId: $scope.item.InboundLeg.DestinationId });
+
+	      $scope.originI = _lodash2.default.find($scope.places, { PlaceId: $scope.item.InboundLeg.OriginId });
+
+	      $scope.date1 = $scope.item.OutboundLeg.DepartureDate.split('T')[0];
+	      $scope.date2 = $scope.item.InboundLeg ? $scope.item.InboundLeg.DepartureDate.split('T')[0] : '';
 
 	      $scope.airlines = $scope.item.OutboundLeg.CarrierIds.map(function (airline) {
 	        return _lodash2.default.find($scope.airlines, { CarrierId: airline }).Name;
 	      }).join(',');
 
-	      if (!$scope.item.Direct) {
-	        console.log($scope.item);
+	      function requestInfo(item) {
+	        var origin = $scope.originO.SkyscannerCode;
+	        var destination = $scope.destinationO.SkyscannerCode;
+
+	        search.getInfo(origin, destination, $scope.date1, $scope.date2).then(function (res) {
+	          var airlineO = _lodash2.default.find(res.data.Carriers, { Id: $scope.item.OutboundLeg.CarrierIds[0] });
+	          $scope.airlineOImage = airlineO ? airlineO.ImageUrl : '../static/images/favicon/WZ.png';
+
+	          if ($scope.item.InboundLeg) {
+	            var airlineI = _lodash2.default.find(res.data.Carriers, { Id: $scope.item.InboundLeg.CarrierIds[0] });
+	            $scope.airlineIImage = airlineI ? airlineI.ImageUrl : '../static/images/favicon/WZ.png';
+	          }
+
+	          var deepLinl = res.data.Itineraries[0];
+	          if (deepLinl && deepLinl.PricingOptions && deepLinl.PricingOptions[0]) {
+	            $scope.deepLink = deepLinl.PricingOptions[0].DeeplinkUrl;
+	          }
+	        });
 	      }
 
-	      // const airlines =
+	      $scope.openLink = function () {
+	        $window.open($scope.deepLink, '_blank');
+	      };
+
+	      requestInfo($scope.item);
 	    }
 	  };
 	};
@@ -83610,7 +83681,7 @@
 /* 34 */
 /***/ function(module, exports) {
 
-	module.exports = "<div class=\"booking-item\">\r\n  <div class=\"booking-item__flight display-inline\">\r\n    <div class=\"airline-card\">\r\n      <img ng-src=\"../static/images/favicon/WZ.png\" class=\"airline-card__icon\">\r\n      <span class=\"airline-card__info\">\r\n        <p class=\"airline-card__name\">{{airlines}}</p>\r\n        <p class=\"airline-card__sub-name\">{{item.Direct ? 'Direct': 'with Stops'}} from {{origin.Name}}</p>\r\n      </span>\r\n    </div>\r\n    <div class=\"direction-line\">\r\n      <span class=\"direction-line__circle\">\r\n        <span class=\"circle__air-code\">\r\n          {{origin.SkyscannerCode}}\r\n          <md-tooltip md-direction=\"top\">{{[origin.Name, origin.CityName].join(', ')}}</md-tooltip>\r\n        </span>\r\n      </span>\r\n      <span class=\"direction-line__line\"></span>\r\n      <span class=\"direction-line__circle\">\r\n        <span class=\"circle__air-code\">\r\n          {{destination.SkyscannerCode}}\r\n          <md-tooltip md-direction=\"top\">{{[destination.Name, destination.CityName].join(', ')}}</md-tooltip>\r\n        </span>\r\n      </span>\r\n    </div>\r\n  </div>\r\n  <div class=\"booking-item__info display-inline\">\r\n    <span class=\"info__min-price\"> {{ item.MinPrice }} €</span>\r\n    <md-button class=\"md-raised md-warn\">Book</md-button>\r\n  </div>\r\n</div>\r\n"
+	module.exports = "<div class=\"booking-item\">\r\n  <div class=\"booking-item__flight display-inline\">\r\n    <div class=\"airline-card\">\r\n      <img ng-src=\"{{airlineOImage}}\" class=\"airline-card__icon\">\r\n      <span class=\"airline-card__info\">\r\n        <p class=\"airline-card__name\">{{airlines}}</p>\r\n        <p class=\"airline-card__sub-name\">{{item.Direct ? 'Direct': 'with Stops'}} from {{originO.Name}} to {{destinationO.Name}}</p>\r\n      </span>\r\n    </div>\r\n    <div class=\"direction-line\">\r\n      <span class=\"direction-line__circle\">\r\n        <span class=\"circle__air-code\">\r\n          {{originO.SkyscannerCode }}\r\n          <md-tooltip md-direction=\"top\">{{[originO.Name, originO.CityName].join(', ')}}</md-tooltip>\r\n        </span>\r\n      </span>\r\n      <span class=\"direction-line__line\"></span>\r\n      <span class=\"direction-line__circle\">\r\n        <span class=\"circle__air-code\">\r\n          {{destinationO.SkyscannerCode}}\r\n          <md-tooltip md-direction=\"top\">{{[destinationO.Name, destinationO.CityName].join(', ')}}</md-tooltip>\r\n        </span>\r\n      </span>\r\n    </div>\r\n    <span class=\"date\">{{date1}}</span>\r\n  </div>\r\n  <div class=\"booking-item__flight display-inline\" ng-if=\"item.InboundLeg\">\r\n    <div class=\"airline-card\">\r\n      <img ng-src=\"{{airlineIImage}}\" class=\"airline-card__icon\">\r\n      <span class=\"airline-card__info\">\r\n        <p class=\"airline-card__name\">{{airlines}}</p>\r\n        <p class=\"airline-card__sub-name\">{{item.Direct ? 'Direct': 'with Stops'}} from {{originI.Name}} to {{destinationI.Name}}</p>\r\n      </span>\r\n    </div>\r\n    <div class=\"direction-line\">\r\n      <span class=\"direction-line__circle\">\r\n        <span class=\"circle__air-code\">\r\n          {{originI.SkyscannerCode }}\r\n          <md-tooltip md-direction=\"top\">{{[originI.Name, originI.CityName].join(', ')}}</md-tooltip>\r\n        </span>\r\n      </span>\r\n      <span class=\"direction-line__line\"></span>\r\n      <span class=\"direction-line__circle\">\r\n        <span class=\"circle__air-code\">\r\n          {{destinationI.SkyscannerCode}}\r\n          <md-tooltip md-direction=\"top\">{{[destinationI.Name, destinationI.CityName].join(', ')}}</md-tooltip>\r\n        </span>\r\n      </span>\r\n    </div>\r\n    <span class=\"date\">{{date2}}</span>\r\n  </div>\r\n  <div class=\"booking-item__info display-inline\">\r\n    <span class=\"info__min-price\"> {{ item.MinPrice }} €</span>\r\n    <md-button class=\"md-raised md-warn\" ng-if=\"deepLink\" ng-click=\"openLink()\">Book</md-button>\r\n  </div>\r\n</div>\r\n"
 
 /***/ },
 /* 35 */
@@ -83640,6 +83711,10 @@
 	      $scope.onClick = function (id) {
 	        search.searchByFilter(id);
 	      };
+
+	      $scope.lucky = function () {
+	        search.performSearch('PL', 'anywhere', 'anytime', 'anytime');
+	      };
 	    }
 	  };
 	}
@@ -83648,7 +83723,7 @@
 /* 36 */
 /***/ function(module, exports) {
 
-	module.exports = "<div class=\"filters-container\">\r\n  <div class=\"filters\">\r\n    <div class=\"filter-item\" ng-repeat=\"item in ::filters\">\r\n      <i class=\"fa\" ng-class=\"::applyClass(item)\" aria-hidden=\"true\" ng-click=\"onDelete(item)\"></i>\r\n      <span class=\"filter-item__text\" ng-click=\"onClick(item.id)\">{{item.prettyName}}</span>\r\n    </div>\r\n  </div>\r\n  <md-checkbox ng-model=\"data.cb1\" aria-label=\"Checkbox 1\" class=\"checkbox\">\r\n    I'm Feeling Lucky!\r\n  </md-checkbox>\r\n</div>\r\n"
+	module.exports = "<div class=\"filters-container\">\r\n  <div class=\"filters\">\r\n    <div class=\"filter-item\" ng-repeat=\"item in ::filters\">\r\n      <i class=\"fa\" ng-class=\"::applyClass(item)\" aria-hidden=\"true\" ng-click=\"onDelete(item)\"></i>\r\n      <span class=\"filter-item__text\" ng-click=\"onClick(item.id)\">{{item.prettyName}}</span>\r\n    </div>\r\n  </div>\r\n  <md-checkbox ng-model=\"data.cb1\" aria-label=\"Checkbox 1\" class=\"checkbox\" ng-click=\"lucky()\">\r\n    I'm Feeling Lucky!\r\n  </md-checkbox>\r\n</div>\r\n"
 
 /***/ },
 /* 37 */
@@ -83702,7 +83777,7 @@
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-	function bookingResults(search) {
+	function bookingResults(search, $window) {
 	  return {
 	    replace: true,
 	    restrict: 'E',
@@ -83710,7 +83785,6 @@
 	    template: __webpack_require__(41),
 	    link: function link($scope) {
 	      $scope.firstResult = _slots2.default;
-
 	      $scope.getItemsFor = function (index) {
 	        var drop = _lodash2.default.drop($scope.firstResult, index * 4);
 	        return _lodash2.default.take(drop, 4);
@@ -83727,9 +83801,34 @@
 	            if (i.id == id) {
 	              i.price = quote.MinPrice;
 	              i.response = quote;
+	              i.placeOrigin = _lodash2.default.find(data.places, { PlaceId: quote.OutboundLeg.OriginId }).SkyscannerCode;
+	              i.placeDestination = _lodash2.default.find(data.places, { PlaceId: quote.OutboundLeg.DestinationId }).SkyscannerCode;
+
+	              requestInfo(i, quote);
 	            }
 	          });
 	        });
+	      };
+
+	      $scope.deepLink = {};
+
+	      function requestInfo(item, quote) {
+	        var origin = item.placeOrigin;
+	        var destination = item.placeDestination;
+
+	        var date1 = quote.OutboundLeg.DepartureDate.split('T')[0];
+	        var date2 = quote.InboundLeg ? quote.InboundLeg.DepartureDate.split('T')[0] : null;
+
+	        search.getInfo(origin, destination, date1, date2).then(function (res) {
+	          var deepLinl = res.data.Itineraries[0];
+	          if (deepLinl && deepLinl.PricingOptions && deepLinl.PricingOptions[0]) {
+	            $scope.deepLink[item.id] = deepLinl.PricingOptions[0].DeeplinkUrl;
+	          }
+	        });
+	      }
+
+	      $scope.openLink = function (id) {
+	        $window.open($scope.deepLink[id], '_blank');
 	      };
 
 	      search.subsctibeAfter(function (data) {
@@ -83739,11 +83838,7 @@
 	        var places = _data$data.places;
 	        var airlines = _data$data.airlines;
 
-	        var itemsCountToShow = 4;
-
-	        $scope.itemsFirst = _lodash2.default.take(quotes, itemsCountToShow);
-	        $scope.itemsLast = _lodash2.default.drop(quotes, itemsCountToShow);
-
+	        $scope.items = quotes;
 	        $scope.places = places;
 	        $scope.airlines = airlines;
 	      });
@@ -83818,7 +83913,7 @@
 /* 41 */
 /***/ function(module, exports) {
 
-	module.exports = "<div class=\"booking-results\">\r\n  <div class=\"concave-bar\"></div>\r\n  <md-progress-linear md-mode=\"indeterminate\" ng-if=\"isSearching\"></md-progress-linear>\r\n  <h1 class=\"booking-results__title\">Explore discovered flights</h1>\r\n  <div ng-if=\"itemsFirst\">\r\n    <booking-item ng-repeat=\"item in itemsFirst\" item=\"item\" places=\"places\" airlines=\"airlines\"></booking-item>\r\n    <div ng-click=\"showMore=!showMore\" ng-if=\"!showMore\"> Show More </div>\r\n    <booking-item ng-repeat=\"item in itemsLast\" item=\"item\" places=\"places\" ng-if=\"showMore\"></booking-item>\r\n  </div>\r\n  <div class=\"md-cards\">\r\n    <div class=\"md-cards__row\" ng-repeat=\"i in [0, 1]\">\r\n      <md-card class=\"large-3 display-inline\" ng-repeat=\"item in getItemsFor(i)\">\r\n        <img ng-src=\"../static/images/{{item.pic}}\" class=\"md-card-image\" alt=\"\">\r\n        <md-card-title>\r\n          <md-card-title-text>\r\n            <span class=\"md-headline\" ng-init=\"getPrice(item)\">\r\n              {{item.title}}\r\n              <span class=\"price float-right\" ng-if=\"item.price\">\r\n                <span class=\"price-capture subheader\">from</span>\r\n                {{item.price}} €\r\n              </span>\r\n            </span>\r\n          </md-card-title-text>\r\n        </md-card-title>\r\n      </md-card>\r\n    </div>\r\n  </div>\r\n</div>\r\n"
+	module.exports = "<div class=\"booking-results\">\r\n  <div class=\"concave-bar\"></div>\r\n  <md-progress-linear md-mode=\"indeterminate\" ng-if=\"isSearching\"></md-progress-linear>\r\n  <h1 class=\"booking-results__title\">Explore discovered flights</h1>\r\n  <div ng-if=\"items\" style=\"text-align:center;\" ng-init=\"limit = 4\">\r\n    <booking-item ng-repeat=\"item in items | limitTo: limit as results\" item=\"item\" places=\"places\" airlines=\"airlines\"></booking-item>\r\n    <md-button class=\"md-raised\" ng-hide=\"results.length === items.length\" ng-click=\"limit = items.length\"> Show More </md-button>\r\n  </div>\r\n  <div class=\"md-cards\">\r\n    <div class=\"md-cards__row\" ng-repeat=\"i in [0, 1]\">\r\n      <md-card class=\"large-3 display-inline\" ng-repeat=\"item in getItemsFor(i)\" ng-click=\"openLink(item.id)\">\r\n        <img ng-src=\"../static/images/{{item.pic}}\" class=\"md-card-image\" alt=\"\">\r\n        <md-card-title>\r\n          <md-card-title-text>\r\n            <span class=\"md-headline\" ng-init=\"getPrice(item)\">\r\n              {{item.title}}\r\n              <span class=\"price float-right\" ng-if=\"item.price\">\r\n                <span class=\"price-capture subheader\">from</span>\r\n                {{item.price}} €\r\n              </span>\r\n            </span>\r\n          </md-card-title-text>\r\n        </md-card-title>\r\n      </md-card>\r\n    </div>\r\n  </div>\r\n</div>\r\n"
 
 /***/ },
 /* 42 */
@@ -83855,7 +83950,7 @@
 
 	var _lodash = __webpack_require__(33);
 
-	function bookingForm($q, places) {
+	function bookingForm($q, places, search) {
 	  return {
 	    replace: false,
 	    restrict: 'E',
@@ -83878,6 +83973,19 @@
 	          searchText: null,
 	          display: null
 	        }
+	      };
+
+	      $scope.search = function () {
+	        var origin = (0, _lodash.filter)($scope.checkmarks, { type: 'departure' }).map(function (i) {
+	          return i.id.replace('-sky', '');
+	        });
+	        var destination = (0, _lodash.filter)($scope.checkmarks, { type: 'destination' }).map(function (i) {
+	          return i.id.replace('-sky', '');
+	        });
+
+	        var dateDep = $scope.departureDate ? $scope.departureDate.toISOString().split('T')[0] : 'anytime';
+	        var returnDate = $scope.returnDate ? $scope.returnDate.toISOString().split('T')[0] : null;
+	        search.performSearch(origin, destination, dateDep, returnDate);
 	      };
 
 	      $scope.requestPlaces = function (query) {
@@ -83923,7 +84031,7 @@
 /* 44 */
 /***/ function(module, exports) {
 
-	module.exports = "<md-tabs md-dynamic-height class=\"booking-form\">\r\n    <md-tab label=\"Booking form\">\r\n      <div class=\"form-container\">\r\n        <div class=\"ng-row\">\r\n          <div class=\"inputs large-8 display-inline\">\r\n            <md-autocomplete class=\"input\"\r\n              md-selected-item=\"inputs.origin.selectedItem\"\r\n              md-search-text=\"inputs.origin.searchText\"\r\n              md-selected-item-change=\"onInputChanged('departure', item.PlaceId, item.PlaceName)\"\r\n              md-items=\"item in requestPlaces(inputs.origin.searchText)\"\r\n              md-item-text=\"item.PlaceName\"\r\n              md-min-length=\"2\"\r\n              placeholder=\"Origin Country or Airport\">\r\n            <md-item-template>\r\n              <span\r\n                md-highlight-text=\"inputs.origin.searchText\"\r\n                md-highlight-flags=\"^i\"\r\n              >\r\n                {{item.PlaceName}}\r\n              </span>\r\n              <span class=\"float-right item__code\" ng-if=\"item.PlaceName === item.CountryName\">\r\n                (Any)\r\n              </span>\r\n              <span class=\"float-right item__code\" ng-if=\"item.PlaceName !== item.CountryName\">\r\n                {{item.PlaceId.replace('-sky', '')}}\r\n              </span>\r\n            </span>\r\n            </md-item-template>\r\n            <md-not-found>\r\n              No states matching \"{{inputs.origin.searchText}}\" were found.\r\n            </md-not-found>\r\n          </md-autocomplete>\r\n            <div class=\"form-container__switcher\">\r\n              <i class=\"fa fa-long-arrow-up fa-lg\" aria-hidden=\"true\"></i>\r\n              <i class=\"fa fa-long-arrow-down fa-lg\" aria-hidden=\"true\"></i>\r\n            </div>\r\n            <md-autocomplete class=\"input\"\r\n              md-selected-item=\"inputs.destination.selectedItem\"\r\n              md-search-text=\"inputs.destination.searchText\"\r\n              md-selected-item-change=\"onInputChanged('destination', item.PlaceId, item.PlaceName)\"\r\n              md-items=\"item in requestPlaces(inputs.destination.searchText)\"\r\n              md-item-text=\"item.PlaceName\"\r\n              md-min-length=\"2\"\r\n              placeholder=\"Destination Country or Airport\">\r\n              <md-item-template>\r\n                  <span md-highlight-text=\"inputs.destination.searchText\" md-highlight-flags=\"^i\">{{item.PlaceName}}</span>\r\n              </md-item-template>\r\n              <md-not-found>\r\n                No states matching \"{{inputs.destination.searchText}}\" were found.\r\n              </md-not-found>\r\n            </md-autocomplete>\r\n          </div>\r\n          <div class=\"large-3 display-inline dates\">\r\n            <md-datepicker ng-model=\"departureDate\" md-placeholder=\"Departure\" class=\"date-picker\" md-open-on-focus></md-datepicker>\r\n            <md-datepicker ng-model=\"returnDate\" md-placeholder=\"Return\" class=\"date-picker\" md-open-on-focus></md-datepicker>\r\n          </div>\r\n          <div class=\"buttons display-inline\">\r\n            <button type=\"button\" class=\"button md-raised md-primary md-button md-ink-ripple\">Search</button>\r\n          </div>\r\n        </div>\r\n        <div class=\"checkmarks\">\r\n          <checkmarks data=\"checkmarks\" on-delete=\"onDelete(item)\"></checkmarks>\r\n        </div>\r\n      </div>\r\n    </md-tab>\r\n    <md-tab label=\"Filters\">\r\n      <filters></filters>\r\n    </md-tab>\r\n</md-tabs>\r\n"
+	module.exports = "<md-tabs md-dynamic-height class=\"booking-form\">\r\n    <md-tab label=\"Booking form\">\r\n      <div class=\"form-container\">\r\n        <div class=\"ng-row\">\r\n          <div class=\"inputs large-8 display-inline\">\r\n            <md-autocomplete class=\"input\"\r\n              md-selected-item=\"inputs.origin.selectedItem\"\r\n              md-search-text=\"inputs.origin.searchText\"\r\n              md-selected-item-change=\"onInputChanged('departure', item.PlaceId, item.PlaceName)\"\r\n              md-items=\"item in requestPlaces(inputs.origin.searchText)\"\r\n              md-item-text=\"item.PlaceName\"\r\n              md-min-length=\"2\"\r\n              placeholder=\"Origin Country or Airport\">\r\n            <md-item-template>\r\n              <span\r\n                md-highlight-text=\"inputs.origin.searchText\"\r\n                md-highlight-flags=\"^i\"\r\n              >\r\n                {{item.PlaceName}}\r\n              </span>\r\n              <span class=\"float-right item__code\" ng-if=\"item.PlaceName === item.CountryName\">\r\n                (Any)\r\n              </span>\r\n              <span class=\"float-right item__code\" ng-if=\"item.PlaceName !== item.CountryName\">\r\n                {{item.PlaceId.replace('-sky', '')}}\r\n              </span>\r\n            </span>\r\n            </md-item-template>\r\n            <md-not-found>\r\n              No states matching \"{{inputs.origin.searchText}}\" were found.\r\n            </md-not-found>\r\n          </md-autocomplete>\r\n            <md-autocomplete class=\"input\"\r\n              md-selected-item=\"inputs.destination.selectedItem\"\r\n              md-search-text=\"inputs.destination.searchText\"\r\n              md-selected-item-change=\"onInputChanged('destination', item.PlaceId, item.PlaceName)\"\r\n              md-items=\"item in requestPlaces(inputs.destination.searchText)\"\r\n              md-item-text=\"item.PlaceName\"\r\n              md-min-length=\"2\"\r\n              placeholder=\"Destination Country or Airport\">\r\n              <md-item-template>\r\n                  <span md-highlight-text=\"inputs.destination.searchText\" md-highlight-flags=\"^i\">{{item.PlaceName}}</span>\r\n                  <span class=\"float-right item__code\" ng-if=\"item.PlaceName === item.CountryName\">\r\n                    (Any)\r\n                  </span>\r\n                  <span class=\"float-right item__code\" ng-if=\"item.PlaceName !== item.CountryName\">\r\n                    {{item.PlaceId.replace('-sky', '')}}\r\n                  </span>\r\n              </md-item-template>\r\n              <md-not-found>\r\n                No states matching \"{{inputs.destination.searchText}}\" were found.\r\n              </md-not-found>\r\n            </md-autocomplete>\r\n          </div>\r\n          <div class=\"large-3 display-inline dates\">\r\n            <md-datepicker ng-model=\"departureDate\" md-placeholder=\"Departure\" class=\"date-picker\" md-open-on-focus></md-datepicker>\r\n            <md-datepicker ng-model=\"returnDate\" md-placeholder=\"Return\" class=\"date-picker\" md-open-on-focus></md-datepicker>\r\n          </div>\r\n          <div class=\"buttons display-inline\">\r\n            <button type=\"button\" class=\"button md-raised md-primary md-button md-ink-ripple\" ng-click=\"search()\">Search</button>\r\n          </div>\r\n        </div>\r\n        <div class=\"checkmarks\">\r\n          <checkmarks data=\"checkmarks\" on-delete=\"onDelete(item)\"></checkmarks>\r\n        </div>\r\n      </div>\r\n    </md-tab>\r\n    <md-tab label=\"Filters\">\r\n      <filters></filters>\r\n    </md-tab>\r\n</md-tabs>\r\n"
 
 /***/ }
 /******/ ]);

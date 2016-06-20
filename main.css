@@ -2428,10 +2428,14 @@ span.item__code {
     border-right: 1px solid #ECECEC;
     height: 100%;
     padding: 1% 5%; }
+  .booking-item .date {
+    font-size: 0.8em;
+    margin-bottom: 20px; }
   .booking-item .airline-card {
     display: flex;
     align-items: center;
-    width: 100%; }
+    width: 100%;
+    text-align: left; }
     .booking-item .airline-card .airline-card__info {
       padding: 0 0 5px 10px; }
       .booking-item .airline-card .airline-card__info p {
@@ -2461,7 +2465,7 @@ span.item__code {
     display: flex;
     align-items: center;
     position: relative;
-    margin: 20px 0; }
+    margin: 20px 0 0 0; }
     .booking-item .direction-line .direction-line__circle {
       width: 15px;
       height: 15px;
