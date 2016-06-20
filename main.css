@@ -2200,25 +2200,46 @@
 body {
   width: 100%;
   height: 100%;
-  display: block; }
+  display: block;
+  margin: 0;
+  top: 2px;
+  background: #D5E8F8;
+  overflow-x: hidden; }
+
+html {
+  background: #D5E8F8; }
+
+.md-calendar-month-label {
+  font-weight: bold;
+  cursor: pointer; }
+
+.float-right {
+  float: right; }
+
+.ng-row {
+  margin: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center; }
 
 .header-container {
-  position: absolute;
-  height: 600px;
+  position: relative;
+  height: 520px;
+  width: 100%;
   overflow: hidden; }
   .header-container .video-header {
     z-index: -1; }
   .header-container .header-container__promo-words {
     position: absolute;
     top: 0;
-    margin-top: 2%;
+    margin-top: 4%;
     width: 100%; }
     .header-container .header-container__promo-words .promo-words__title__sub-1,
     .header-container .header-container__promo-words .promo-words__title__sub-2 {
       position: relative;
       background: rgba(255, 255, 255, 0.7);
       color: #231F20;
-      margin-left: 2%; }
+      margin-left: 10%; }
     .header-container .header-container__promo-words .promo-words__title__sub-1 {
       padding: 5px 15px; }
     .header-container .header-container__promo-words .promo-words__title__sub-2 {
@@ -2253,25 +2274,210 @@ body {
   width: 100%;
   max-width: 100%; }
 
-.input .input__actual {
-  outline: none;
-  width: 98%;
-  padding: 11px;
-  border: 5px solid rgba(0, 0, 0, 0.8);
-  border-radius: 5px; }
-  .input .input__actual:focus {
-    border: 5px solid #003366; }
-  .input .input__actual + .input__suggestions.show {
-    border-top: none;
-    margin-top: -5px; }
+.display-inline {
+  display: inline-block; }
 
-.input .input__suggestions {
-  background: #E0FFFF;
-  width: 98%;
+span.item__code {
+  color: #606060;
+  font-size: 0.9em; }
+
+.booking-form {
+  background: rgba(255, 255, 255, 0.7);
+  position: absolute;
+  width: 60%;
+  height: auto;
+  margin: 0 10%;
+  top: 250px;
+  overflow: initial !important; }
+  .booking-form .display-inline {
+    display: inline-block; }
+  .booking-form md-tab-item {
+    color: #606060 !important; }
+  .booking-form md-tabs-canvas {
+    background: #FFFFFF; }
+    .booking-form md-tabs-canvas md-tab-item {
+      color: #606060; }
+  .booking-form md-tab-content {
+    display: inline !important; }
+  .booking-form .md-tab .md-ripple-container {
+    color: #D5E8F8; }
+  .booking-form .form-container {
+    position: relative;
+    padding: 10px 20px; }
+    .booking-form .form-container .input {
+      margin-top: 2%; }
+      .booking-form .form-container .input:last-child {
+        margin-bottom: 2%; }
+    .booking-form .form-container .inputs {
+      position: relative;
+      width: 60%; }
+    .booking-form .form-container .dates .date-picker:first-child {
+      display: block;
+      padding-bottom: 10px; }
+    .booking-form .form-container .buttons {
+      padding-left: 30px; }
+      .booking-form .form-container .buttons .button {
+        margin: 0; }
+  .booking-form .form-container__switcher {
+    background: #D5E8F8;
+    border-radius: 50%;
+    height: 40px;
+    position: absolute;
+    width: 40px;
+    right: -8px;
+    top: 35px;
+    cursor: pointer;
+    z-index: 2; }
+    .booking-form .form-container__switcher .fa:before {
+      position: absolute;
+      left: 20px;
+      top: 12px;
+      color: #003366; }
+    .booking-form .form-container__switcher .fa-long-arrow-up:before {
+      left: 12px; }
+    .booking-form .form-container__switcher:hover {
+      background: #003366; }
+      .booking-form .form-container__switcher:hover .fa:before {
+        color: #D5E8F8; }
+
+.checkmark {
+  color: #FFFFFF;
+  padding: 5px 10px;
+  margin: 5px 5px 0 0; }
+  .checkmark.label {
+    border-radius: 3px;
+    background: #2199E8;
+    font-size: 0.9em; }
+  .checkmark.warning {
+    background: #FFAE00; }
+  .checkmark .fa:before {
+    color: #FFFFFF;
+    cursor: pointer;
+    padding-left: 5px; }
+  .checkmark .fa:hover:before {
+    font-weight: 800; }
+
+.checkmarks {
+  margin: 10px 0; }
+
+.filters {
+  display: flex;
+  justify-content: space-between;
+  margin: 0 20px; }
+  .filters .filter-item {
+    display: flex;
+    flex-direction: column;
+    min-width: 80px;
+    text-align: center; }
+    .filters .filter-item .filter-item__text {
+      padding: 2px 5px;
+      margin-top: 3px; }
+      .filters .filter-item .filter-item__text:hover {
+        background: rgba(255, 64, 129, 0.87);
+        color: #FFFFFF;
+        cursor: pointer;
+        border-radius: 5px; }
+
+.filters-container {
+  margin: 20px 0; }
+  .filters-container .checkbox {
+    margin: 20px 30px 0; }
+
+.booking-results {
+  background: #D5E8F8;
+  position: relative; }
+  .booking-results .concave-bar {
+    position: absolute;
+    top: -23px;
+    height: 1px;
+    width: 102%;
+    border-bottom: 2px dashed #D5E8F8; }
+  .booking-results md-progress-linear {
+    position: absolute;
+    z-index: 3;
+    top: -23px; }
+  .booking-results .booking-results__title {
+    color: #003366;
+    text-align: center;
+    margin: 20px 0; }
+  .booking-results .md-cards {
+    margin: 0 8% 2%; }
+    .booking-results .md-cards .md-cards__row {
+      display: flex;
+      flex-direction: row; }
+    .booking-results .md-cards md-card {
+      overflow: hidden; }
+    .booking-results .md-cards .md-card-image {
+      cursor: pointer;
+      transition: all .2s ease-in-out; }
+      .booking-results .md-cards .md-card-image:hover {
+        transform: scale(1.1); }
+  .booking-results .price-capture {
+    font-size: 0.7em;
+    color: #606060; }
+
+.booking-item {
+  display: flex;
+  width: 80%;
+  margin: 10px 10%;
+  background: #FFFFFF;
   border-radius: 5px;
-  border: 5px solid #003366; }
-
-.input .suggestions__item {
-  width: 100%;
-  cursor: pointer;
-  padding: 10px; }
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.2), 0 1px 1px 0 rgba(0, 0, 0, 0.14), 0 2px 1px -1px rgba(0, 0, 0, 0.12); }
+  .booking-item .booking-item__flight {
+    width: 70%;
+    border-right: 1px solid #ECECEC;
+    height: 100%;
+    padding: 1% 5%; }
+  .booking-item .airline-card {
+    display: flex;
+    align-items: center;
+    width: 100%; }
+    .booking-item .airline-card .airline-card__info {
+      padding: 0 0 5px 10px; }
+      .booking-item .airline-card .airline-card__info p {
+        margin: 0; }
+      .booking-item .airline-card .airline-card__info .airline-card__name {
+        font-size: 0.9em;
+        font-weight: bold; }
+      .booking-item .airline-card .airline-card__info .airline-card__sub-name {
+        font-size: 0.8em;
+        color: #606060; }
+    .booking-item .airline-card .airline-card__icon {
+      max-width: 80px;
+      max-height: 50px; }
+  .booking-item .booking-item__info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 20%;
+    font-weight: bold;
+    position: relative;
+    margin: 10px 0; }
+    .booking-item .booking-item__info .info__min-price {
+      font-size: 1.2em; }
+  .booking-item .direction-line {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    position: relative;
+    margin: 20px 0; }
+    .booking-item .direction-line .direction-line__circle {
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: transparent;
+      display: inline-block;
+      position: relative;
+      border: 2px solid #2199E8; }
+      .booking-item .direction-line .direction-line__circle .circle__air-code {
+        position: absolute;
+        top: -20px;
+        left: -5px;
+        font-size: 0.8em;
+        font-weight: bold; }
+    .booking-item .direction-line .direction-line__line {
+      width: 100%;
+      height: 2px;
+      background: #2199E8;
+      display: inline-block; }
